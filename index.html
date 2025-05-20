@@ -1,0 +1,444 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Manipulador Temporal</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    
+    <style>
+        @keyframes slowSand {
+            0% { top: 0%; }
+            100% { top: 100%; }
+        }
+        
+        @keyframes breathe {
+            0%, 100% { transform: scale(0.9); }
+            50% { transform: scale(1.1); }
+        }
+        
+        @keyframes metronome {
+            0%, 100% { transform: rotate(-30deg); }
+            50% { transform: rotate(30deg); }
+        }
+        
+        @keyframes slowReveal {
+            0% { width: 0%; }
+            100% { width: 100%; }
+        }
+        
+        .time-dilation-effect {
+            transition: all 5s linear;
+        }
+        
+        .metronome-arm {
+            animation: metronome 2s infinite ease-in-out;
+            transform-origin: top center;
+        }
+        
+        .slow-text {
+            animation: slowReveal 10s linear infinite;
+        }
+        
+        .sound-btn.active {
+            background-color: #4f46e5 !important;
+            border: 1px solid #6366f1;
+        }
+        
+        /* Efecto de carga para los sonidos */
+        .sound-loading::after {
+            content: "";
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            width: 16px;
+            height: 16px;
+            border: 2px solid rgba(255,255,255,0.3);
+            border-radius: 50%;
+            border-top-color: white;
+            animation: spin 1s linear infinite;
+        }
+        
+        @keyframes spin {
+            to { transform: translate(-50%, -50%) rotate(360deg); }
+        }
+    </style>
+</head>
+<body class="bg-gray-900 text-white min-h-screen flex flex-col items-center justify-center p-4">
+    <audio id="dropSound">
+        <source src="./sonidos/Sonido Gotas.mp3" type="audio/mpeg">
+    </audio>
+    <audio id="windSound">
+        <source src="./sonidos/Sonido de Viento.mp3" type="audio/mpeg">
+    </audio>
+    <audio id="tickSound">
+        <source src="./sonidos/Sonido de Tic-tac.mp3" type="audio/mpeg">
+    </audio>
+    <audio id="wavesSound">
+        <source src="./sonidos/Sonido de Olas.mp3" type="audio/mpeg">
+    </audio>
+
+     <!-- Agregamos los elementos de audio para la guía de respiración -->
+     <audio id="inhalaSound">
+        <source src="./sonidos/Guía de respiración/Inhala.mp3" type="audio/mpeg">
+    </audio>
+    <audio id="mantenSound">
+        <source src="./sonidos/Guía de respiración/Mantén.mp3" type="audio/mpeg">
+    </audio>
+    <audio id="exhalaSound">
+        <source src="./sonidos/Guía de respiración/Exhala.mp3" type="audio/mpeg">
+    </audio>
+    <audio id="esperaSound">
+        <source src="./sonidos/Guía de respiración/Espera.mp3" type="audio/mpeg">
+    </audio>
+
+    <div class="max-w-4xl w-full bg-gray-800 rounded-xl shadow-2xl overflow-hidden">
+        <div class="bg-indigo-900 p-6 text-center">
+            <h1 class="text-4xl font-bold mb-2">Manipulador Temporal</h1>
+            <p class="text-indigo-200">Altera tu percepción del tiempo</p>
+            <p class="text-indigo-90">La percepción del tiempo se altera, haciendo que los minutos parezcan avanzar lentamente, aunque en realidad transcurran con su normalidad.</p>
+        </div>
+        
+        <div class="p-6 grid md:grid-cols-2 gap-8">
+            <!-- Visualization Panel -->
+            <div class="bg-gray-700 p-6 rounded-lg flex flex-col items-center justify-center">
+                <h2 class="text-2xl font-semibold mb-4 text-center border-b pb-2 border-gray-600">Visualización Temporal</h2>
+                
+                <div class="flex justify-center items-center w-full">
+                    <!-- Metronome -->
+                    <div class="relative h-40 w-32 mx-auto">
+                        <div class="absolute bottom-0 left-1/2 transform -translate-x-1/2 w-8 h-24 bg-gray-600 rounded-t-lg"></div>
+                        <div class="metronome-arm absolute top-0 left-1/2 transform -translate-x-1/2 w-1 h-28 bg-red-500"></div>
+                        <div class="absolute top-28 left-1/2 transform -translate-x-1/2 w-4 h-4 bg-red-600 rounded-full"></div>
+                    </div>
+                </div>
+            </div>
+            
+            <!-- Control Panel -->
+            <div class="bg-gray-700 p-6 rounded-lg">
+                <h2 class="text-2xl font-semibold mb-4 text-center border-b pb-2 border-gray-600">Controles</h2>
+                
+                <div class="space-y-6">
+                    <!-- Time Dilation Slider -->
+                    <div>
+                        <label class="block text-sm font-medium mb-2">Intensidad de ralentización</label>
+                        <input type="range" min="1" max="10" value="1" class="w-full h-2 bg-gray-600 rounded-lg appearance-none cursor-pointer" id="timeDilationSlider">
+                        <div class="flex justify-between text-xs text-gray-300 mt-1">
+                            <span>Normal</span>
+                            <span>Extremo</span>
+                        </div>
+                    </div>
+                    
+                    <!-- Breathing Guide -->
+                    <div class="bg-gray-800 p-4 rounded-lg">
+                        <h3 class="font-medium mb-2">Guía de respiración</h3>
+                        <div class="flex items-center space-x-4">
+                            <div class="flex-1 bg-gray-900 rounded-full overflow-hidden">
+                                <div class="slow-text h-2 bg-green-500" id="breathBar"></div>
+                            </div>
+                            <div class="text-sm" id="breathText">Inhala...</div>
+                        </div>
+                    </div>
+                    
+                    <!-- Sound Controls -->
+                    <div>
+                        <h3 class="font-medium mb-2">Sonidos ambientales</h3>
+                        <div class="grid grid-cols-2 gap-2">
+                            <button class="sound-btn bg-gray-800 hover:bg-gray-600 py-2 px-3 rounded flex items-center justify-center space-x-2 relative" data-sound="dropSound">
+                                <i class="fas fa-tint"></i>
+                                <span>Gotas</span>
+                            </button>
+                            <button class="sound-btn bg-gray-800 hover:bg-gray-600 py-2 px-3 rounded flex items-center justify-center space-x-2 relative" data-sound="windSound">
+                                <i class="fas fa-wind"></i>
+                                <span>Viento</span>
+                            </button>
+                            <button class="sound-btn bg-gray-800 hover:bg-gray-600 py-2 px-3 rounded flex items-center justify-center space-x-2 relative" data-sound="tickSound">
+                                <i class="fas fa-clock"></i>
+                                <span>Tic-tac</span>
+                            </button>
+                            <button class="sound-btn bg-gray-800 hover:bg-gray-600 py-2 px-3 rounded flex items-center justify-center space-x-2 relative" data-sound="wavesSound">
+                                <i class="fas fa-water"></i>
+                                <span>Olas</span>
+                            </button>
+                        </div>
+                    </div>
+                    
+                    <!-- Timer -->
+                    <div class="bg-gray-800 p-4 rounded-lg text-center">
+                        <h3 class="font-medium mb-2">Tiempo percibido vs. real</h3>
+                        <div class="flex justify-around">
+                            <div>
+                                <div class="text-3xl font-mono" id="realTime">00:00</div>
+                                <div class="text-xs text-gray-400">Real</div>
+                            </div>
+                            <div>
+                                <div class="text-3xl font-mono text-indigo-400" id="perceivedTime">00:00</div>
+                                <div class="text-xs text-indigo-300">Percibido</div>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <!-- Start Button -->
+                    <button id="startButton" class="w-full py-3 bg-indigo-600 hover:bg-indigo-700 rounded-lg font-bold transition-all flex items-center justify-center space-x-2">
+                        <span>Iniciar Experiencia Temporal</span>
+                    </button>
+                </div>
+            </div>
+        </div>
+        
+        <div class="bg-gray-900 p-4 text-center text-sm text-gray-400">
+            <p>Concentra tu mente en los elementos visuales y sigue el ritmo de respiración para alterar tu percepción del tiempo.</p>
+            <br>
+            <text-align:justify;>
+            <p>Con esta herramienta, percibirás que cada segundo se alarga y <b>los minutos transcurren lentamente.</b></p>
+            <p>Será como si el mundo a tu alrededor se moviera a cámara lenta, porque para ti los minutos pasaran lentamente ya que la percepción del tiempo se altera. Estas alteraciones temporales te permitirán disfrutar de una mayor profundidad en tus pensamientos y acciones, haciendo que incluso las tareas más simples se sientan más significativas y satisfactorias.
+            </text-align:justify>
+            <br>
+            <br>
+            <p><b>© 2025 Autor: Martín López. Manipulador Temporal. Todos los derechos reservados.</b></p>
+        </div>
+    </div>
+    
+    <script>
+     document.addEventListener('DOMContentLoaded', function() {
+        const timeDilationSlider = document.getElementById('timeDilationSlider');
+        const breathText = document.getElementById('breathText');
+        const breathBar = document.getElementById('breathBar');
+        const startButton = document.getElementById('startButton');
+        const realTime = document.getElementById('realTime');
+        const perceivedTime = document.getElementById('perceivedTime');
+        const soundButtons = document.querySelectorAll('.sound-btn');
+        
+        // Elementos de audio para la respiración
+        const inhalaSound = document.getElementById('inhalaSound');
+        const mantenSound = document.getElementById('mantenSound');
+        const exhalaSound = document.getElementById('exhalaSound');
+        const esperaSound = document.getElementById('esperaSound');
+        
+        let isActive = false;
+        let dilationFactor = 1;
+        let realSeconds = 0;
+        let perceivedSeconds = 0;
+        let breathPhase = 0;
+        let timerInterval;
+        let currentSound = null;
+        let breathTimer = null;
+        let audioContextInitialized = false;
+        
+        // Solución para el autoplay bloqueado
+        function initAudioContext() {
+            if (audioContextInitialized) return;
+            
+            // Crear un contexto de audio silencioso para desbloquear la reproducción
+            const AudioContext = window.AudioContext || window.webkitAudioContext;
+            const audioContext = new AudioContext();
+            
+            // Crear un nodo de ganancia y silenciarlo
+            const gainNode = audioContext.createGain();
+            gainNode.gain.value = 0;
+            gainNode.connect(audioContext.destination);
+            
+            // Crear un buffer vacío
+            const buffer = audioContext.createBuffer(1, 1, 22050);
+            const source = audioContext.createBufferSource();
+            source.buffer = buffer;
+            source.connect(gainNode);
+            source.start();
+            
+            audioContextInitialized = true;
+            console.log("Contexto de audio inicializado");
+        }
+        
+        // Función para reproducir audio de respiración
+        function playBreathAudio(audioElement) {
+            // Ajustar el volumen
+            audioElement.volume = 0.5;
+            
+            // Reiniciar el audio antes de reproducirlo
+            audioElement.currentTime = 0;
+            
+            // Intentar reproducir el audio
+            audioElement.play().catch(error => {
+                console.error("Error al reproducir audio de respiración:", error);
+            });
+        }
+        
+        // Breathing guide animation con audio sincronizado
+        function updateBreathingGuide() {
+            const phases = [
+                { text: "Inhala...", duration: 4000, width: 100, audio: inhalaSound },
+                { text: "Mantén...", duration: 2000, width: 100, audio: mantenSound },
+                { text: "Exhala...", duration: 6000, width: 0, audio: exhalaSound },
+                { text: "Espera...", duration: 2000, width: 0, audio: esperaSound }
+            ];
+            
+            // Limpiar el temporizador existente si hay uno
+            if (breathTimer) {
+                clearTimeout(breathTimer);
+            }
+            
+            // Si no está activo, no hacer nada
+            if (!isActive) return;
+            
+            const phase = phases[breathPhase];
+            breathText.textContent = phase.text;
+            breathBar.style.width = phase.width + '%';
+            breathBar.style.transitionDuration = (phase.duration/1000) + 's';
+            
+            // Reproducir el audio correspondiente
+            playBreathAudio(phase.audio);
+            
+            // Programar la siguiente fase
+            breathTimer = setTimeout(() => {
+                breathPhase = (breathPhase + 1) % phases.length;
+                updateBreathingGuide();
+            }, phase.duration);
+        }
+        
+        // Time perception effect
+        function updateTimes() {
+            realSeconds++;
+            
+            // Calculate perceived time based on dilation factor
+            perceivedSeconds += 1/dilationFactor;
+            
+            const formatTime = (seconds) => {
+                const mins = Math.floor(seconds / 60);
+                const secs = Math.floor(seconds % 60);
+                return `${mins.toString().padStart(2, '0')}:${secs.toString().padStart(2, '0')}`;
+            };
+            
+            realTime.textContent = formatTime(realSeconds);
+            perceivedTime.textContent = formatTime(perceivedSeconds);
+        }
+        
+        // Start/stop the experience
+        startButton.addEventListener('click', function() {
+            isActive = !isActive;
+            
+            if (isActive) {
+                // Start experience
+                startButton.classList.remove('bg-indigo-600', 'hover:bg-indigo-700');
+                startButton.classList.add('bg-red-600', 'hover:bg-red-700');
+                
+                // Get dilation factor from slider
+                dilationFactor = parseFloat(timeDilationSlider.value);
+                
+                // Start timers
+                realSeconds = 0;
+                perceivedSeconds = 0;
+                timerInterval = setInterval(updateTimes, 1000);
+                
+                // Start breathing guide with audio
+                breathPhase = 0;
+                updateBreathingGuide();
+                
+                // Slow down all animations
+                document.querySelectorAll('.metronome-arm').forEach(el => {
+                    el.style.animationDuration = (8*dilationFactor) + 's';
+                });
+                
+                // Inicializar contexto de audio si no se ha hecho
+                if (!audioContextInitialized) {
+                    initAudioContext();
+                }
+                
+            } else {
+                // Stop experience
+                startButton.classList.remove('bg-red-600', 'hover:bg-red-700');
+                startButton.classList.add('bg-indigo-600', 'hover:bg-indigo-700');
+                
+                // Pause animations
+                clearInterval(timerInterval);
+                
+                // Clear breath timer
+                if (breathTimer) {
+                    clearTimeout(breathTimer);
+                    breathTimer = null;
+                }
+                
+                // Parar todos los audios de respiración
+                [inhalaSound, mantenSound, exhalaSound, esperaSound].forEach(audio => {
+                    audio.pause();
+                    audio.currentTime = 0;
+                });
+                
+                // Reset breathing animation
+                breathText.textContent = "Preparado...";
+                breathBar.style.width = "0%";
+                breathBar.style.transitionDuration = "0s";
+            }
+        });
+        
+        // Update dilation factor when slider changes
+        timeDilationSlider.addEventListener('input', function() {
+            dilationFactor = parseFloat(this.value);
+            if (isActive) {
+                document.querySelectorAll('.metronome-arm').forEach(el => {
+                    el.style.animationDuration = (8*dilationFactor) + 's';
+                });
+            }
+        });
+        
+        // Control de sonidos ambientales
+        soundButtons.forEach(button => {
+            button.addEventListener('click', async function() {
+                const soundId = this.getAttribute('data-sound');
+                const soundElement = document.getElementById(soundId);
+                
+                // Inicializar el contexto de audio en la primera interacción
+                if (!audioContextInitialized) {
+                    initAudioContext();
+                }
+                
+                // Si ya es el sonido actual, lo pausamos
+                if (currentSound === soundId) {
+                    soundElement.pause();
+                    soundElement.currentTime = 0;
+                    this.classList.remove('active');
+                    currentSound = null;
+                    return;
+                }
+                
+                // Detener cualquier sonido que esté reproduciéndose
+                if (currentSound) {
+                    const prevSound = document.getElementById(currentSound);
+                    prevSound.pause();
+                    prevSound.currentTime = 0;
+                    document.querySelector(`.sound-btn[data-sound="${currentSound}"]`).classList.remove('active');
+                }
+                
+                // Mostrar indicador de carga
+                this.classList.add('sound-loading');
+                
+                try {
+                    // Configurar el sonido
+                    soundElement.volume = 0.3;
+                    soundElement.loop = true;
+                    
+                    // Intentar reproducir
+                    await soundElement.play();
+                    
+                    // Actualizar interfaz
+                    this.classList.remove('sound-loading');
+                    this.classList.add('active');
+                    currentSound = soundId;
+                    
+                } catch (error) {
+                    console.error("Error al reproducir sonido:", error);
+                    this.classList.remove('sound-loading');
+                    
+                    // Mostrar mensaje al usuario
+                    if (error.name === 'NotAllowedError') {
+                        alert("Por favor, haz clic primero en cualquier parte de la página para habilitar los sonidos.");
+                    }
+                }
+            });
+        });
+        
+        // Habilitar sonidos después de cualquier interacción del usuario
+        document.addEventListener('click', initAudioContext, { once: true });
+    });
+</script>
